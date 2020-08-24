@@ -98,5 +98,8 @@ Limitation:
 
 
 
-
+### Installation problem
+- [protobuf]
+    - Sinde Cartographer dependecy, manually remove protobuf in /usr/local/bin, /usr/local/bin, /usr/local/include/google. you can check the protobuf version like following command:
+    ``` protobuf --version```
 
