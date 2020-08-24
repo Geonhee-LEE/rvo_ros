@@ -102,4 +102,5 @@ Limitation:
 - [protobuf](https://github.com/hanruihua/rvo_ros/issues/2)
     - Sinde Cartographer dependecy, manually remove protobuf in /usr/local/bin, /usr/local/bin, /usr/local/include/google. you can check the protobuf version like following command:
     ``` protobuf --version```
+    - [Protobuf installation](https://github.com/protocolbuffers/protobuf)
 
