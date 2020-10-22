@@ -32,14 +32,13 @@ for example:
 
 > rosrun rvo_ros rvo_node 0 1 0 2 0 3 
 
-## Launch simulation
+## test with simulation
 
-> roslaunch rvo_ros rvo_6_agent_gazebo.launch --screen
-
+> roslaunch rvo_ros rvo_gazebo_agent.launch
 
 **Note**: Using service to set the model and goals. 
 
-## Sent the goal to the agents
+## Service
 
 > rosrun rvo_ros set_goals_client
 
@@ -49,7 +48,8 @@ for example:
         - "random": allocate the goals randomly with limit along x and y, only for number: min_x, max_x, min_y, max_y.
 
 - example:
-    > rosrun rvo_ros set_goals_client default 6 1 5 1 4 1 3 1 2 1 1 1
+    >rosrun rvo_ros set_goals_client default 1 1 1 4 4 4 4 1  
+    >rosrun rvo_ros set_goals_client random 0 5 1 4   
 
 ## Topics
 
@@ -98,9 +98,5 @@ Limitation:
 
 
 
-### Installation problem
-- [protobuf](https://github.com/hanruihua/rvo_ros/issues/2)
-    - Sinde Cartographer dependecy, manually remove protobuf in /usr/local/bin, /usr/local/bin, /usr/local/include/google. you can check the protobuf version like following command:
-    ``` protobuf --version```
-    - [Protobuf installation](https://github.com/protocolbuffers/protobuf)
+
 
