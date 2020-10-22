@@ -11,15 +11,10 @@ This ros package is derived from the ORCA library ([lib](http://gamma.cs.unc.edu
 - Ubuntu 18.04
 - ros Melodic
 
-## Install
-
-> git clone https://github.com/Geonhee-LEE/rvo_ros
-> cd ~/catkin_ws  
-> catkin_make  
 
 ## set environment parameter
 
-> export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~/catkin_ws/devel/lib
+> export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~//collision_avoidance_ws/devel/lib
 
 
 ## Usage
