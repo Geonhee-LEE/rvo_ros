@@ -13,7 +13,7 @@ This ros package is derived from the ORCA library ([lib](http://gamma.cs.unc.edu
 
 ## Install
 
-> git clone https://github.com/hanruihua/rvo_ros.git  
+> git clone https://github.com/Geonhee-LEE/rvo_ros
 > cd ~/catkin_ws  
 > catkin_make  
 
