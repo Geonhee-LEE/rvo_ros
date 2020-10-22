@@ -14,7 +14,7 @@ This ros package is derived from the ORCA library ([lib](http://gamma.cs.unc.edu
 
 ## set environment parameter
 
-> export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~//collision_avoidance_ws/devel/lib
+> export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~/collision_avoidance_ws/devel/lib
 
 
 ## Usage
