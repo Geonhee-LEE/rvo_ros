@@ -45,6 +45,7 @@ for example:
 
 - example:
     > rosrun rvo_ros set_goals_client default 6 1 5 1 4 1 3 1 2 1 1 1
+    
     >  rosrun rvo_ros set_goals_client default 1 1 2 1 3 1 4 1 5 1 6 1
 
 ## Topics
