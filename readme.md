@@ -47,6 +47,16 @@ for example:
     > rosrun rvo_ros set_goals_client default 6 1 5 1 4 1 3 1 2 1 1 1
     
     >  rosrun rvo_ros set_goals_client default 1 1 2 1 3 1 4 1 5 1 6 1
+    
+    > rosrun rvo_ros set_goals_client "random" -5 5 -5 5
+          
+        arguments input:
+        Request has been sent
+        model: random
+        limit x[-5,5]
+        limit y[-5,5]
+        [ INFO] [1603334577.246498067]: call service successfully, number of goals: 6
+      
 
 ## Topics
 
