@@ -46,8 +46,15 @@ for example:
 - example:
     > rosrun rvo_ros set_goals_client default 6 1 5 1 4 1 3 1 2 1 1 1
     
-    >  rosrun rvo_ros set_goals_client default 1 1 2 1 3 1 4 1 5 1 6 1
+        arguments input:
+        [ INFO] [1603334677.851469547]: call service successfully, number of goals: 6
+
     
+    >  rosrun rvo_ros set_goals_client default 1 1 2 1 3 1 4 1 5 1 6 1
+
+        arguments input:
+        [ INFO] [1603334677.851469547]: call service successfully, number of goals: 6
+        
     > rosrun rvo_ros set_goals_client "random" -5 5 -5 5
           
         arguments input:
