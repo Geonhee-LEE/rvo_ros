@@ -4,7 +4,7 @@
 
 This ros package is derived from the ORCA library ([lib](http://gamma.cs.unc.edu/RVO2/)).
 
-![](https://github.com/hanruihua/rvo_ros/blob/master/simulation/rvo_sim.gif)
+![](https://github.com/Geonhee-LEE/rvo_ros/blob/master/asset/rvo_sim.gif)
 
 ## Environment
 

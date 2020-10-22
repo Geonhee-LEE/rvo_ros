@@ -2,9 +2,9 @@
 <package format="2">
   <name>rvo_ros</name>
   <version>0.0.0</version>
-  <description>The rvo package for robot planning </description>
+  <description>The rvo2 package for robot planning </description>
 
-  <maintainer email="hanrobot@todo.todo">hanrobot</maintainer>
+  <maintainer email="gunhee6392@gmail.com">Geon</maintainer>
 
   <license>TODO</license>
 
