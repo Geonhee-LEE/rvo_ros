@@ -32,6 +32,7 @@ namespace RVO {
         void setGoal(std::vector<geometry_msgs::Point> set_goals);
         void setInitial();
         void setPreferredVelocities();
+        void setObstacles(gazebo_msgs::ModelStates::ConstPtr model_msg);
 
         std::vector<RVO::Vector2*>  step();
         float goal_threshold = 0.03;

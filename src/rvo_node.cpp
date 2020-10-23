@@ -116,7 +116,9 @@ void rvo_goals_init()
 
 void rvo_velCallback(const gazebo_msgs::ModelStates::ConstPtr &sub_msg)
 {
-    std::cout<<num_agent<<std::endl;
+        rvo->setObstacles(sub_msg);
+
+    //std::cout<<num_agent<<std::endl;
     seq++;
     int count_vel = 0;
     rvo->updateState_gazebo(sub_msg); // read the message
@@ -151,11 +153,11 @@ void rvo_velCallback(const gazebo_msgs::ModelStates::ConstPtr &sub_msg)
 
     if (num_agent != copy_num_agent)
     {
-        std::cout << "The num of agents is" + std::to_string(num_agent) << std::endl;
+        std::cout << "The num of agents is " + std::to_string(num_agent) << std::endl;
         copy_num_agent = num_agent;
     }
 
-    for (int i = 0; i < total_num; i++)
+    for (int i = 0; i < num_agent; i++)
     {
         geometry_msgs::Twist new_vel;
         geometry_msgs::Pose cur_pose;
@@ -182,7 +184,7 @@ void rvo_velCallback(const gazebo_msgs::ModelStates::ConstPtr &sub_msg)
             msg_pub.pose.push_back(cur_pose);
 
             count_vel++;
-            std::cout << "Current " << agent_name << std::endl;
+            //std::cout << "Current " << agent_name << std::endl;
         }
     }
     rvo_node_pub.publish(msg_pub);

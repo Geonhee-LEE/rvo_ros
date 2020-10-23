@@ -45,11 +45,10 @@ void RVOPlanner::setGoal(std::vector<geometry_msgs::Point> set_goals)
             float y = set_goals[i].y;
 
             goals.emplace_back(Vector2(x, y));
-            std::cout<<"goal"+ std::to_string(i+1) + ":["<<x<<","<<y<<"]"<<std::endl;
+            //std::cout<<"goal"+ std::to_string(i+1) + ":["<<x<<","<<y<<"]"<<std::endl;
         }
     }
 }
-
 
 void RVOPlanner::randomOnceGoal(const float limit_goal[4])
 {
@@ -128,13 +127,46 @@ bool RVOPlanner::arrived()
     return reach;
 }
 
-
-
 void RVOPlanner::setInitial()
 {
     IfInitial = (!goals.empty()) && (!sim->agents_.empty());
 }
+void RVOPlanner::setObstacles(gazebo_msgs::ModelStates::ConstPtr model_msg)
+{
+    if (simulator == "gazebo")
+    {
+        auto models_name = model_msg->name;
+        int num = models_name.size();
+        int count = 0;
+        std::string agent_name= "unit_box";
 
+        sim->obstacles_.clear();
+
+        for (int i = 0; i < num; i++)
+        {
+            auto iter_agent = std::find(models_name.begin(), models_name.end(), agent_name);
+            int agent_index = iter_agent - models_name.begin();
+
+            if (iter_agent != models_name.end())
+            {
+                // Add (polygonal) obstacle(s), specifying vertices in counterclockwise order.
+                std::vector<RVO::Vector2> vertices;
+                vertices.push_back(RVO::Vector2(model_msg->pose[agent_index].position.x - 0.5f, model_msg->pose[agent_index].position.y - 0.5f));
+                vertices.push_back(RVO::Vector2(model_msg->pose[agent_index].position.x + 0.5f, model_msg->pose[agent_index].position.y - 0.5f));
+                vertices.push_back(RVO::Vector2(model_msg->pose[agent_index].position.x + 0.5f, model_msg->pose[agent_index].position.y + 0.5f));
+                vertices.push_back(RVO::Vector2(model_msg->pose[agent_index].position.x - 0.5f, model_msg->pose[agent_index].position.y + 0.5f));
+                sim->addObstacle(vertices);
+                agent_name= "unit_box_" + std::to_string(i);
+                
+            }
+        }
+
+        // Process obstacles so that they are accounted for in the simulation.
+        sim->processObstacles();
+    }
+    else
+        std::cout << "error: please check the simulator" << std::endl;
+}
 void RVOPlanner::setPreferredVelocities()
 {
     for (size_t i = 0; i < sim->getNumAgents(); ++i)
@@ -175,12 +207,11 @@ void RVOPlanner::updateState_gazebo(gazebo_msgs::ModelStates::ConstPtr model_msg
                 float vel_x = model_msg->twist[agent_index].linear.x;
                 float vel_y = model_msg->twist[agent_index].linear.y;
 
-               if (IfInitial)
+               if(IfInitial)
                {
                    sim->agents_[count]->position_ = RVO::Vector2(obs_x, obs_y);
                    sim->agents_[count]->velocity_ = RVO::Vector2(vel_x, vel_y);
-               }
-                   
+               }                   
                else
                    sim->addAgent(RVO::Vector2(obs_x, obs_y));
 
