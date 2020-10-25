@@ -46,9 +46,15 @@ CATKIN_DEPENDS roscpp message_runtime geometry_msgs std_msgs
 add_subdirectory(plugins)
 add_library(rvolib SHARED rvo_lib/nav_rvo.cpp rvo_lib/RVOSimulator.cpp rvo_lib/Agent.cpp rvo_lib/KdTree.cpp rvo_lib/Obstacle.cpp)
 
+add_library(rvo_move_base_lib SHARED rvo_lib/move_base_rvo.cpp rvo_lib/RVOSimulator.cpp rvo_lib/Agent.cpp rvo_lib/KdTree.cpp rvo_lib/Obstacle.cpp)
+
 add_executable(rvo_node src/rvo_node.cpp)
 target_link_libraries(rvo_node ${catkin_LIBRARIES} rvolib)
 add_dependencies(rvo_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+add_executable(rvo_move_base_node src/rvo_move_base_node.cpp)
+target_link_libraries(rvo_move_base_node ${catkin_LIBRARIES} rvo_move_base_lib)
+add_dependencies(rvo_move_base_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 add_executable(set_goals_client src/set_goals_client.cpp)
 target_link_libraries(set_goals_client ${catkin_LIBRARIES})
