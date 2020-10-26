@@ -15,22 +15,6 @@ int main(int argc, char **argv)
     ros::ServiceServer service = n.advertiseService("set_rvo_goals", set_goals);
     ros::Rate loop_rate(50);
 
-    if ((argc > 1) && (argc % 2 == 1))
-    {
-        int num_init_point = argc - 1;
-        for (int i = 1; i < num_init_point + 1; i = i + 2)
-        {
-            geometry_msgs::Point point;
-            point.x = atof(argv[i]);
-            point.y = atof(argv[i + 1]);
-            rvo_goals.push_back(point);
-        }
-    }
-    else
-    {
-        ROS_INFO("No input, Using default position 0 1 0 2 ....0 10 ");
-    }
-
     double neighborDist, maxNeighbors, timeHorizon, timeHorizonObst, radius, maxSpeed, goal_threshold;
 
     n.param<double>("neighborDist", neighborDist, 4);
@@ -41,7 +25,7 @@ int main(int argc, char **argv)
     n.param<double>("maxSpeed", maxSpeed, 0.2);
     n.param<double>("goal_threshold", goal_threshold, 0.01);
 
-    rvo = new RVO::RVOPlanner("gazebo");
+    rvo = new RVO::RVOPlanner("move_base");
     
     rvo->goal_threshold = goal_threshold;
     rvo->setupScenario(neighborDist, maxNeighbors, timeHorizon, timeHorizonObst, radius, maxSpeed);   // for exp
@@ -195,7 +179,6 @@ void rvo_velCallback(const gazebo_msgs::ModelStates::ConstPtr &sub_msg)
     rvo_node_pub.publish(msg_pub);
 }
 
-
 void amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr amcl_pose)
 {
     amcl_pose_ = *amcl_pose;
@@ -207,16 +190,11 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr odom)
 }
 
 void obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr new_obstacles)
-{
+{    
+    rvo->setObstacles(new_obstacles);    // Process static obstacles 
+    rvo->updateAgentStates(new_obstacles); // Process agents
+    rvo->updateRobotState(amcl_pose_, odom_);  // Process target robot
 
-    // Process static obstacles
-    rvo->setObstacles(new_obstacles);
-
-    //std::cout<<num_agent<<std::endl;
-    seq++;
-    int count_vel = 0;
-    rvo->updateAgentStates(new_obstacles); // read the message
-    rvo->updateRobotState(amcl_pose_, odom_);
     if (motion_model == "default")
         rvo->setGoal(rvo_goals);
     else if (motion_model == "random")

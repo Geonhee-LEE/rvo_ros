@@ -1,5 +1,5 @@
-#ifndef RVO_NODE__GAZEBO_H
-#define RVO_NODE__GAZEBO_H
+#ifndef RVO_NODE_MOVE_BASE_H
+#define RVO_NODE_MOVE_BASE_H
 
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
@@ -24,7 +24,6 @@ int num_agent = 0;
 int copy_num_agent = 1;
 bool arrived = false;
 float vel_ratio(float vel, float lo, float hi);
-// geometry_msgs::Twist *list_obs_twist = new geometry_msgs::Twist();
 ros::Publisher rvo_node_pub;
 ros::Publisher cmd_vel_pub;
 gazebo_msgs::WorldState msg_pub;

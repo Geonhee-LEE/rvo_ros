@@ -130,6 +130,9 @@ bool RVOPlanner::arrived()
 void RVOPlanner::setInitial()
 {
     IfInitial = (!goals.empty()) && (!sim->agents_.empty());
+
+    if(IfInitial)
+        std::cout << "IfInitial is true" << std::endl;
 }
 void RVOPlanner::setObstacles(gazebo_msgs::ModelStates::ConstPtr model_msg)
 {
@@ -224,35 +227,9 @@ void RVOPlanner::updateState_gazebo(gazebo_msgs::ModelStates::ConstPtr model_msg
         std::cout << "error: please check the simulator" << std::endl;
 }
 
-void RVOPlanner::updateRobotState(geometry_msgs::PoseWithCovarianceStamped amcl_pose, nav_msgs::Odometry odom)
-{
-    float obs_x = amcl_pose.pose.pose.position.x;
-    float obs_y = amcl_pose.pose.pose.position.y;
-    float obs_theta = tf::getYaw(amcl_pose.pose.pose.orientation);
-
-
-    tf::Stamped<tf::Vector3> odom_vel, map_vel;
-    odom_vel.stamp_ = ros::Time::now();
-    odom_vel.frame_id_ = "odom";
-    odom_vel.setData(tf::Vector3(odom.twist.twist.linear.x, odom.twist.twist.linear.y, 0));
-
-    tf::TransformListener transform_listen_;
-    transform_listen_.transformVector("map", odom_vel, map_vel);
-
-    size_t robot_id = sim->getNumAgents();
-
-    if(IfInitial)
-    {
-        sim->agents_[robot_id]->position_ = RVO::Vector2(obs_x, obs_y);
-        sim->agents_[robot_id]->velocity_ = RVO::Vector2(map_vel.x(), map_vel.y());
-    }                   
-    else
-        sim->addAgent(RVO::Vector2(obs_x, obs_y));
-}
-
-
 void RVOPlanner::setObstacles(const obstacle_detector::Obstacles::ConstPtr new_obstacles)
 {
+    num_obstacle = 0;;
     sim->obstacles_.clear();
 
     for (int i = 0; i < new_obstacles->circles.size(); i++)
@@ -273,17 +250,17 @@ void RVOPlanner::setObstacles(const obstacle_detector::Obstacles::ConstPtr new_o
         vertices.push_back(RVO::Vector2(obs_x + new_obstacles->circles[i].radius, obs_y - new_obstacles->circles[i].radius));
         vertices.push_back(RVO::Vector2(obs_x + new_obstacles->circles[i].radius, obs_y + new_obstacles->circles[i].radius));
         vertices.push_back(RVO::Vector2(obs_x - new_obstacles->circles[i].radius, obs_y + new_obstacles->circles[i].radius));
-        sim->addObstacle(vertices);          
+        sim->addObstacle(vertices);    
+        num_obstacle++;      
     }
 
     // Process obstacles so that they are accounted for in the simulation.
     sim->processObstacles();    
 }
 
-
 void RVOPlanner::updateAgentStates(const obstacle_detector::Obstacles::ConstPtr new_obstacles)
-{
-    unsigned int cnt = 0;
+{ 
+    num_agent = 0;
     sim->agents_.clear();
 
     for (int i = 0; i < new_obstacles->circles.size(); i++)
@@ -297,16 +274,46 @@ void RVOPlanner::updateAgentStates(const obstacle_detector::Obstacles::ConstPtr 
         if(sqrt(pow(vel_x, 2) + pow(vel_y, 2)) < 0.1)
             continue; 
 
-        if(IfInitial)
-        {
-            sim->agents_[cnt]->position_ = RVO::Vector2(obs_x, obs_y);
-            sim->agents_[cnt]->velocity_ = RVO::Vector2(vel_x, vel_y);
-        }                   
-        else
-            sim->addAgent(RVO::Vector2(obs_x, obs_y));
+        sim->addAgent(RVO::Vector2(obs_x, obs_y));
 
-        cnt++;
+        sim->agents_[num_agent]->position_ = RVO::Vector2(obs_x, obs_y);
+        sim->agents_[num_agent]->velocity_ = RVO::Vector2(vel_x, vel_y);
+                           
+        num_agent++;
     }
+}
+
+
+void RVOPlanner::updateRobotState(geometry_msgs::PoseWithCovarianceStamped amcl_pose, nav_msgs::Odometry odom)
+{
+    float obs_x = amcl_pose.pose.pose.position.x;
+    float obs_y = amcl_pose.pose.pose.position.y;
+    float obs_theta = tf::getYaw(amcl_pose.pose.pose.orientation);
+
+
+    geometry_msgs::Vector3Stamped odom_vel, map_vel;
+    odom_vel.header.stamp = ros::Time(0);
+    odom_vel.header.frame_id = "odom";
+    odom_vel.vector.x = odom.twist.twist.linear.x;
+    odom_vel.vector.y = odom.twist.twist.linear.y;
+
+    tf::TransformListener transform_listen_;
+    try{
+        tf::StampedTransform transform;
+        transform_listen_.waitForTransform("map", "odom", ros::Time(0), ros::Duration(10.0) );
+        transform_listen_.lookupTransform("map", "odom", ros::Time(0), transform);
+        transform_listen_.transformVector("map", odom_vel, map_vel);
+    
+    }
+    catch (tf::TransformException &ex) {
+         ROS_ERROR("%s",ex.what());
+    }
+
+    size_t robot_id = sim->getNumAgents();
+    sim->addAgent(RVO::Vector2(obs_x, obs_y));
+    sim->agents_[robot_id]->position_ = RVO::Vector2(obs_x, obs_y);
+    sim->agents_[robot_id]->velocity_ = RVO::Vector2(map_vel.vector.x, map_vel.vector.y);
+
 }
 
 std::vector<RVO::Vector2 *> RVOPlanner::step()
@@ -327,15 +334,21 @@ std::vector<RVO::Vector2 *> RVOPlanner::step()
 
 RVO::Vector2 RVOPlanner::getRobotCommand()
 {
+    std::cout<<"num_obstacle: " << num_obstacle << ", num_agent: " << num_agent <<std::endl;
     size_t robot_id = sim->getNumAgents();
 
     sim->kdTree_->buildAgentTree();
     newVelocities.clear();
+    std::cout<< " robot_id "<< robot_id <<std::endl;
 
-    sim->agents_[robot_id]->computeNeighbors();
-    sim->agents_[robot_id]->computeNewVelocity();    
+    if(robot_id)
+    {
+        sim->agents_[robot_id-1]->computeNeighbors(); 
+        sim->agents_[robot_id-1]->computeNewVelocity();    
+    }
 
-    return RVO::Vector2(sim->agents_[robot_id]->newVelocity_.x(), sim->agents_[robot_id]->newVelocity_.y());
+    std::cout<<"velcity x: "<< sim->agents_[robot_id-1]->newVelocity_.x()<< ", velocity y: " << sim->agents_[robot_id-1]->newVelocity_.y() <<std::endl;
+    return RVO::Vector2(sim->agents_[robot_id-1]->newVelocity_.x(), sim->agents_[robot_id-1]->newVelocity_.y());
 }
 
 }; // namespace RVO

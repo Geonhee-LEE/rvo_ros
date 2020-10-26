@@ -46,6 +46,7 @@ namespace RVO {
         float goal_threshold = 0.03;
         
         // Move base, obstacle detector
+        unsigned int num_obstacle, num_agent;
         obstacle_detector::Obstacles raw_obstacles_;
         void updateAgentStates(const obstacle_detector::Obstacles::ConstPtr);
         void updateRobotState(geometry_msgs::PoseWithCovarianceStamped, nav_msgs::Odometry);
