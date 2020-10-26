@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   std_msgs
   message_generation
+  obstacle_detector
+  tf
 )
 find_package(gazebo REQUIRED)
 include_directories(
@@ -38,7 +40,7 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robohan
 #  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy tf
-CATKIN_DEPENDS roscpp message_runtime geometry_msgs std_msgs
+CATKIN_DEPENDS roscpp message_runtime geometry_msgs std_msgs tf
 )
 
 # file(GLOB RVO_LIB_DIRS "rvo_lib/nav_rvo.cpp")
@@ -47,6 +49,7 @@ add_subdirectory(plugins)
 add_library(rvolib SHARED rvo_lib/nav_rvo.cpp rvo_lib/RVOSimulator.cpp rvo_lib/Agent.cpp rvo_lib/KdTree.cpp rvo_lib/Obstacle.cpp)
 
 add_library(rvo_move_base_lib SHARED rvo_lib/move_base_rvo.cpp rvo_lib/RVOSimulator.cpp rvo_lib/Agent.cpp rvo_lib/KdTree.cpp rvo_lib/Obstacle.cpp)
+target_link_libraries(rvo_move_base_lib ${catkin_LIBRARIES})
 
 add_executable(rvo_node src/rvo_node.cpp)
 target_link_libraries(rvo_node ${catkin_LIBRARIES} rvolib)

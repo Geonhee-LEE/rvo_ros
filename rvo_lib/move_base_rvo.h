@@ -11,6 +11,13 @@
 #include <string>
 #include <random>
 
+#include <obstacle_detector/Obstacles.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
+
+
 namespace RVO {
 
     class Agent;
@@ -24,6 +31,7 @@ namespace RVO {
         void setupScenario(float neighborDist, size_t maxNeighbors, float timeHorizon, float timeHorizonObst, float radius, float maxSpeed);
 
         void updateState_gazebo(gazebo_msgs::ModelStates::ConstPtr model_msg);
+        
 
         void setGoal();
         void randGoal(const float limit_goal[4], const std::string &model="default");
@@ -37,6 +45,12 @@ namespace RVO {
         std::vector<RVO::Vector2*>  step();
         float goal_threshold = 0.03;
         
+        // Move base, obstacle detector
+        obstacle_detector::Obstacles raw_obstacles_;
+        void updateAgentStates(const obstacle_detector::Obstacles::ConstPtr);
+        void updateRobotState(geometry_msgs::PoseWithCovarianceStamped, nav_msgs::Odometry);
+        void setObstacles(const obstacle_detector::Obstacles::ConstPtr);
+        RVO::Vector2 getRobotCommand();  
         
         
     private:
