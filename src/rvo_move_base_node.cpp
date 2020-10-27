@@ -6,11 +6,12 @@ float control = 0.0;
 
 int main(int argc, char **argv)
 {
-
     ros::init(argc, argv, "rvo_move_base_node");
     ros::NodeHandle n;
     rvo_node_pub = n.advertise<gazebo_msgs::WorldState>("rvo_vel", 1000);
     cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
+    marker_pub = n.advertise<visualization_msgs::Marker>("holonimic_velocity", 10);
+
     ros::Subscriber obstacle_sub = n.subscribe("/tracked_obstacle", 10, obstaclesCallback);
     ros::Subscriber amcl_pose_sub = n.subscribe("/amcl_pose", 10, amclPoseCallback);
     ros::Subscriber odom_sub = n.subscribe("/odom", 10, odomCallback);
@@ -23,9 +24,9 @@ int main(int argc, char **argv)
     n.param<double>("maxNeighbors", maxNeighbors, 10);
     n.param<double>("timeHorizon", timeHorizon, 10);
     n.param<double>("timeHorizonObst", timeHorizonObst, 5);
-    n.param<double>("radius", radius, 0.3);
-    n.param<double>("maxSpeed", maxSpeed, 0.2);
-    n.param<double>("goal_threshold", goal_threshold, 0.01);
+    n.param<double>("radius", radius, 0.4);
+    n.param<double>("maxSpeed", maxSpeed, 0.5);
+    n.param<double>("goal_threshold", goal_threshold, 0.5);
 
     rvo = new RVO::RVOPlanner("move_base");
     
@@ -57,9 +58,10 @@ int main(int argc, char **argv)
                 std::cout<<"Reached the Goal!!!" <<std::endl;
                 goal_trigger_flg = false;
                 geometry_msgs::Twist new_vel;
+                new_vel.linear.x = 0;
+                new_vel.angular.z = 0;
                 cmd_vel_pub.publish(new_vel);
-                ros::spinOnce();
-                loop_rate.sleep();
+                break;
             }
 
             RVO::Vector2 new_velocities = rvo->getRobotCommand();
@@ -67,9 +69,39 @@ int main(int argc, char **argv)
             geometry_msgs::Twist new_vel;
             new_vel.linear.x = new_velocities.x();
             new_vel.linear.y = new_velocities.y();
+            
+            { 
+                // Publish pt marker
+                visualization_msgs::Marker points;
+                points.header.frame_id = "map";
+                points.header.stamp = ros::Time::now();
+                points.ns = "holonomic_point";
+                points.action = visualization_msgs::Marker::ADD;
+                points.pose.orientation.w = 1.0; 
+                points.id = 0;
+                points.type = visualization_msgs::Marker::POINTS;
+    
+                // POINTS markers use x and y scale for width/height respectively
+                points.scale.x = 0.3;
+                points.scale.y = 0.3;
+                // Points are green
+                points.color.g = 1.0f;
+                points.color.a = 1.0f;
+                geometry_msgs::Point p; // Holonomic vel
+                p.x = amcl_pose_.pose.pose.position.x + new_vel.linear.x * 5.0f;
+                p.y = amcl_pose_.pose.pose.position.y + new_vel.linear.y * 5.0f;
+                p.z = 0.5;                
+                points.points.push_back(p);
+
+                p.x = rvo_goals[0].x;
+                p.y = rvo_goals[0].y;
+                points.points.push_back(p); // Gol pt vel
+                marker_pub.publish(points);
+            }
+
             new_vel = holonomicToNonholonomic(new_vel, amcl_pose_.pose.pose.orientation);
             cmd_vel_pub.publish(new_vel);
-            
+
         }
         ros::spinOnce();
         loop_rate.sleep();

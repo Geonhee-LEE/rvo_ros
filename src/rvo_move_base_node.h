@@ -16,6 +16,7 @@
 #include <obstacle_detector/Obstacles.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -26,6 +27,7 @@ bool arrived = false;
 float vel_ratio(float vel, float lo, float hi);
 ros::Publisher rvo_node_pub;
 ros::Publisher cmd_vel_pub;
+ros::Publisher marker_pub;
 gazebo_msgs::WorldState msg_pub;
 std::vector<geometry_msgs::Point> rvo_goals;
 

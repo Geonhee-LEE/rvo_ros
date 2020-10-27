@@ -143,7 +143,7 @@ bool RVOPlanner::robotArrived()
 
     size_t robot_id = sim->getNumAgents();
 
-    if (absSq(goals[0] - sim->getAgentPosition(0)) >= goal_threshold)
+    if (absSq(goals[0] - sim->getAgentPosition(robot_id-1)) >= goal_threshold)
     {
         reach = false;    
     }    
@@ -299,6 +299,7 @@ void RVOPlanner::updateAgentStates(const obstacle_detector::Obstacles new_obstac
 
         sim->agents_[num_agent]->position_ = RVO::Vector2(obs_x, obs_y);
         sim->agents_[num_agent]->velocity_ = RVO::Vector2(vel_x, vel_y);
+        sim->setAgentRadius(num_agent, new_obstacles.circles[i].radius);
                            
         
         goals.emplace_back(Vector2(obs_x + 5*vel_x, obs_y + 5*vel_y));
