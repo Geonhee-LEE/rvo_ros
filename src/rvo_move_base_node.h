@@ -31,6 +31,7 @@ std::vector<geometry_msgs::Point> rvo_goals;
 
 geometry_msgs::PoseWithCovarianceStamped amcl_pose_;
 nav_msgs::Odometry odom_;
+obstacle_detector::Obstacles new_obstacles;
 
 RVO::RVOPlanner* rvo;
 std::string motion_model = "default";
@@ -42,6 +43,7 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr);
 
 bool set_goals(rvo_ros::SetGoals::Request &req, rvo_ros::SetGoals::Response &res);
 geometry_msgs::Twist holonomicToNonholonomic(geometry_msgs::Twist input, geometry_msgs::Quaternion );
+float speed_smoothy(float target, float control, float acc_inc, float acc_dec);
 float cal_yaw(geometry_msgs::Quaternion quater);
 float trans2pi(float angle);
 void rvo_goals_init();

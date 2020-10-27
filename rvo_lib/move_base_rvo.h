@@ -13,6 +13,7 @@
 
 #include <obstacle_detector/Obstacles.h>
 #include <tf/tf.h>
+#include "tf2/utils.h"
 #include <tf/transform_listener.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
@@ -37,7 +38,9 @@ namespace RVO {
         void randGoal(const float limit_goal[4], const std::string &model="default");
         void randomOnceGoal(const float limit_goal[4]);
         bool arrived();
+        bool robotArrived();
         void setGoal(std::vector<geometry_msgs::Point> set_goals);
+        void setRobotGoal(std::vector<geometry_msgs::Point> set_goals);
         void setInitial();
         void setPreferredVelocities();
         void setObstacles(gazebo_msgs::ModelStates::ConstPtr model_msg);
@@ -48,9 +51,9 @@ namespace RVO {
         // Move base, obstacle detector
         unsigned int num_obstacle, num_agent;
         obstacle_detector::Obstacles raw_obstacles_;
-        void updateAgentStates(const obstacle_detector::Obstacles::ConstPtr);
+        void updateAgentStates(const obstacle_detector::Obstacles);
         void updateRobotState(geometry_msgs::PoseWithCovarianceStamped, nav_msgs::Odometry);
-        void setObstacles(const obstacle_detector::Obstacles::ConstPtr);
+        void setObstacles(const obstacle_detector::Obstacles);
         RVO::Vector2 getRobotCommand();  
         
         

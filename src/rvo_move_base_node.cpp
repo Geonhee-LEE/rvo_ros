@@ -1,6 +1,9 @@
 #include "rvo_move_base_node.h"
 
 uint64_t seq = 0;
+bool goal_trigger_flg = false;
+float control = 0.0;
+
 int main(int argc, char **argv)
 {
 
@@ -8,12 +11,11 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     rvo_node_pub = n.advertise<gazebo_msgs::WorldState>("rvo_vel", 1000);
     cmd_vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
-    //ros::Subscriber sub = n.subscribe("/rvo/model_states", 100, rvo_velCallback);
-    ros::Subscriber obstacle_sub = n.subscribe("/tracked_obstacle", 100, obstaclesCallback);
-    ros::Subscriber amcl_pose_sub = n.subscribe("/amcl_pose", 100, amclPoseCallback);
-    ros::Subscriber odom_sub = n.subscribe("/odom", 100, odomCallback);
+    ros::Subscriber obstacle_sub = n.subscribe("/tracked_obstacle", 10, obstaclesCallback);
+    ros::Subscriber amcl_pose_sub = n.subscribe("/amcl_pose", 10, amclPoseCallback);
+    ros::Subscriber odom_sub = n.subscribe("/odom", 10, odomCallback);
     ros::ServiceServer service = n.advertiseService("set_rvo_goals", set_goals);
-    ros::Rate loop_rate(50);
+    ros::Rate loop_rate(10);
 
     double neighborDist, maxNeighbors, timeHorizon, timeHorizonObst, radius, maxSpeed, goal_threshold;
 
@@ -36,13 +38,49 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
+        if(goal_trigger_flg)
+        {
+            rvo->setObstacles(new_obstacles);    // Process static obstacles 
+            rvo->updateAgentStates(new_obstacles); // Process agents
+            rvo->updateRobotState(amcl_pose_, odom_);  // Process target robot
+
+            if (motion_model == "default")
+                rvo->setRobotGoal(rvo_goals);
+            else if (motion_model == "random")
+                rvo->randGoal(limit_goal, "default");
+
+            rvo->setInitial();
+            rvo->setPreferredVelocities();
+
+            if(rvo->robotArrived())
+            {
+                std::cout<<"Reached the Goal!!!" <<std::endl;
+                goal_trigger_flg = false;
+                geometry_msgs::Twist new_vel;
+                cmd_vel_pub.publish(new_vel);
+                ros::spinOnce();
+                loop_rate.sleep();
+            }
+
+            RVO::Vector2 new_velocities = rvo->getRobotCommand();
+            
+            geometry_msgs::Twist new_vel;
+            new_vel.linear.x = new_velocities.x();
+            new_vel.linear.y = new_velocities.y();
+            new_vel = holonomicToNonholonomic(new_vel, amcl_pose_.pose.pose.orientation);
+            cmd_vel_pub.publish(new_vel);
+            
+        }
         ros::spinOnce();
         loop_rate.sleep();
+
     }
 }
 
 bool set_goals(rvo_ros::SetGoals::Request &req, rvo_ros::SetGoals::Response &res)
 {
+    goal_trigger_flg = true;
+    
     if (req.model == "default")
     {
         motion_model = req.model;
@@ -102,83 +140,6 @@ void rvo_goals_init()
     }
 }
 
-void rvo_velCallback(const gazebo_msgs::ModelStates::ConstPtr &sub_msg)
-{
-    // Process static obstacles
-    rvo->setObstacles(sub_msg);
-
-    //std::cout<<num_agent<<std::endl;
-    seq++;
-    int count_vel = 0;
-    rvo->updateState_gazebo(sub_msg); // read the message
-    if (motion_model == "default")
-        rvo->setGoal(rvo_goals);
-    else if (motion_model == "random")
-        rvo->randGoal(limit_goal, "default");
-
-    rvo->setInitial();
-    rvo->setPreferredVelocities();
-
-    arrived = rvo->arrived();
-
-    std::vector<RVO::Vector2 *> new_velocities = rvo->step();
-
-    auto models_name = sub_msg->name;
-    int total_num = models_name.size();
-    
-    std_msgs::Header header;
-    header.seq = seq;
-    header.stamp = ros::Time::now();
-    header.frame_id = "/world";
-
-    msg_pub.header = header;
-    msg_pub.name.clear();
-    msg_pub.pose.clear();
-    msg_pub.twist.clear();
-    
-    msg_pub.header = header;
-
-    num_agent = new_velocities.size();
-
-    if (num_agent != copy_num_agent)
-    {
-        std::cout << "The num of agents is " + std::to_string(num_agent) << std::endl;
-        copy_num_agent = num_agent;
-    }
-
-    for (int i = 0; i < num_agent; i++)
-    {
-        geometry_msgs::Twist new_vel;
-        geometry_msgs::Pose cur_pose;
-
-        std::string agent_name = "agent" + std::to_string(i + 1);
-
-        auto iter_agent = std::find(models_name.begin(), models_name.end(), agent_name);
-        int iter_index = iter_agent - models_name.begin();
-
-        
-        if (iter_agent != models_name.end())
-        {
-            
-            float x = new_velocities[count_vel]->x();
-            float y = new_velocities[count_vel]->y();
-
-            new_vel.linear.x = x;
-            new_vel.linear.y = y;
-
-            cur_pose = sub_msg->pose[iter_index];
-
-            msg_pub.name.push_back(agent_name);
-            msg_pub.twist.push_back(new_vel);
-            msg_pub.pose.push_back(cur_pose);
-
-            count_vel++;
-            //std::cout << "Current " << agent_name << std::endl;
-        }
-    }
-    rvo_node_pub.publish(msg_pub);
-}
-
 void amclPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr amcl_pose)
 {
     amcl_pose_ = *amcl_pose;
@@ -189,35 +150,16 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr odom)
     odom_ = *odom;
 }
 
-void obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr new_obstacles)
+void obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr obstacles)
 {    
-    rvo->setObstacles(new_obstacles);    // Process static obstacles 
-    rvo->updateAgentStates(new_obstacles); // Process agents
-    rvo->updateRobotState(amcl_pose_, odom_);  // Process target robot
-
-    if (motion_model == "default")
-        rvo->setGoal(rvo_goals);
-    else if (motion_model == "random")
-        rvo->randGoal(limit_goal, "default");
-
-    rvo->setInitial();
-    rvo->setPreferredVelocities();
-
-    arrived = rvo->arrived();
-    RVO::Vector2 new_velocities = rvo->getRobotCommand();
-    
-    geometry_msgs::Twist new_vel;
-    new_vel.linear.x = new_velocities.x();
-    new_vel.angular.z = new_velocities.y();
-    new_vel = holonomicToNonholonomic(new_vel, amcl_pose_.pose.pose.orientation);
-    cmd_vel_pub.publish(new_vel);
+    new_obstacles = *obstacles;
 }
 
 geometry_msgs::Twist holonomicToNonholonomic(geometry_msgs::Twist input, geometry_msgs::Quaternion orientation)
 {
     geometry_msgs::Twist output;
-    float angular_max = 1.0f;
-    float angle_vel, angle_yaw;
+    float angular_max = 0.30f;
+    float angle_vel, angle_yaw, diff;
 
     float rvo_x = input.linear.x;
     float rvo_y = input.linear.y;
@@ -241,7 +183,7 @@ geometry_msgs::Twist holonomicToNonholonomic(geometry_msgs::Twist input, geometr
 
         angle_yaw = cal_yaw(orientation);
 
-        float diff = trans2pi(angle_yaw - angle_vel);
+        diff = trans2pi(angle_yaw - angle_vel);
 
         float speed_goal = speed * cos(diff);
 
@@ -257,9 +199,25 @@ geometry_msgs::Twist holonomicToNonholonomic(geometry_msgs::Twist input, geometr
         else
             angular_z = 0;
     }
-    output.linear.x = linear_x;
+    control = speed_smoothy(linear_x, control, 0.5f, 0.5f);
+    output.linear.x = control;
     output.angular.z = angular_z;
+    std::cout<<"diff: " << diff*180/3.14<< ", Non-holonimic velcity x: "<< output.linear.x<< ", angular z: " << output.angular.z <<std::endl;
+    
     return output;
+}
+
+float speed_smoothy(float target, float control, float acc_inc, float acc_dec)
+{
+   if (target > control)
+        control = std::min(target, control + acc_inc);
+   else if (target < control) 
+        control = std::max(target, control - acc_dec);
+   else
+        control = target;
+
+    return control;
+
 }
 
 float cal_yaw(geometry_msgs::Quaternion quater)
